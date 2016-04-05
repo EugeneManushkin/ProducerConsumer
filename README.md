@@ -15,12 +15,10 @@ void ProcessRequest(Request* request, Stopper stopSignal);
 ///@brief      Request deleter
 void DeleteRequest(Request* request);
 ```
-Implement multithread producer-consumer model. 
-Class Stopper must be implemented and any synchronization must done with Win32 API. Using C++11 is allowed and solution must work under Windows XP. 
-Program must work 30 seconds then execution must be stopped so remaining requests are unhandled.
+Implement class Stopper and multithreaded producer-consumer model with two or more threads that are using GetRequest to generate request objects and ProcessRequest to handle requests. Program must work 30 seconds then execution must be stopped so remaining requests should be unhandled. Any synchronization must be done with Win32 API however using C++11 is allowed. Program must work under Windows XP.
 
 #Install
-- Download released archive, extract it.
+- Download latest released archive, extract it.
 - In terminal cd to folder with extracted files, type 'ProducerConsumer.exe'
 
 #Build
