@@ -69,9 +69,10 @@ namespace
 
       ReleaseSemaphore(needRequest, 1, 0);
       DoProcessRequest(req, stop, number);
+      // Perhaps user canceled request so check IsStopped flag before hard WaitForSingleObject operation
       if (stop.IsStopped())
       {
-        Utils::Log(number, "ConsumerThread: user brakes ProcessRequest");
+        Utils::Log(number, "ConsumerThread: stop signal");
         break;
       }
     }
