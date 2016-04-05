@@ -35,7 +35,7 @@ namespace
       ReleaseSemaphore(requestReady, 1, 0);
     }
 
-    Utils::Log(number, "ProducerThread: user brakes GetRequest");
+    Utils::Log(number, "Producer thread stopped");
   }
 
   void DoProcessRequest(Request* req, Stopper stop, unsigned number)

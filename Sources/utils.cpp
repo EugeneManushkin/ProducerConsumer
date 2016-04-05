@@ -14,7 +14,7 @@ namespace
   struct Locker
   {
     Locker(CRITICAL_SECTION* mutex)
-    : Mutex(mutex)
+      : Mutex(mutex)
     {
       EnterCriticalSection(Mutex);
     }
@@ -40,7 +40,7 @@ namespace
     {
       DeleteCriticalSection(&Mutex);
       for (std::deque<Request*>::const_iterator i = Requests.begin(); i != Requests.end(); ++i)
-        delete *i;
+        DeleteRequest(*i);
     }
 
     bool Release(Request*& result)
@@ -89,7 +89,7 @@ namespace
     CRITICAL_SECTION Mutex;
   };
 
-  Randomizer Rand;
+  static Randomizer Rand;
 }
 
 namespace Utils

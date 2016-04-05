@@ -18,7 +18,7 @@ public:
 
   bool IsStopped()
   {
-    return !!*Signal;
+    return *Signal != 0;
   }
 
 private:
