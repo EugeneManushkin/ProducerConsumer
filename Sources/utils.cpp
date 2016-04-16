@@ -5,8 +5,8 @@
 
 #include <deque>
 #include <iostream>
+#include <random>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <string>
 #include <time.h>
 
@@ -72,12 +72,13 @@ namespace
     unsigned Random(unsigned max)
     {
       Locker guard(&Mutex);
-      return rand() % max + 1;
+      std::uniform_int_distribution<unsigned> d(1, max);
+      return d(Engine);
     }
  
     Randomizer()
+      : Engine(std::random_device()())
     {
-      srand(static_cast<unsigned>(time(0)));
       InitializeCriticalSection(&Mutex);
     }
 
@@ -87,6 +88,7 @@ namespace
     }
 
   private:
+    std::mt19937 Engine;
     CRITICAL_SECTION Mutex;
   };
 
