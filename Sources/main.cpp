@@ -10,19 +10,30 @@
 
 namespace
 {
+  bool DoWait(HANDLE object, Stopper stop)
+  {
+    HANDLE objects[] = {object, stop};
+    DWORD count = 2;
+    DWORD result = WaitForMultipleObjects(count, objects, FALSE, INFINITE);
+    if (result == WAIT_OBJECT_0)
+      return false;
+      
+    // TODO: improve logging
+    if (result < WAIT_OBJECT_0 || result >= WAIT_OBJECT_0 + count)
+      std::cout << "Error occured\n";
+    else
+      std::cout << "Stop signaled\n";
+
+    return true;
+  }
+
   void ProducerThread(Utils::GuardedQueue* queue, HANDLE needRequest, HANDLE requestReady, Stopper stop, unsigned number)
   {
     Utils::Log(number, "Producer thread started");
     while (true)
     {
-      if (WaitForSingleObject(needRequest, INFINITE) != WAIT_OBJECT_0)
+      if (DoWait(needRequest, stop))
         break;
-
-      if (stop.IsStopped())
-      {
-        Utils::Log(number, "ProducerThread: stop signal");
-        break;
-      }
 
       Request* req = GetRequest(stop);
       if (!req)
@@ -52,29 +63,17 @@ namespace
     while (true)
     {
       Utils::MeasureTime measure;
-      if (WaitForSingleObject(requestReady, INFINITE) != WAIT_OBJECT_0)
+      if (DoWait(requestReady, stop))
         break;
 
       // Print delay if > 20 ms
       measure.Reset(number, 20);
-      if (stop.IsStopped())
-      {
-        Utils::Log(number, "ConsumerThread: stop signal");
-        break;
-      }
-
       Request* req = 0;
       if (!queue->Release(req))
         break;
 
       ReleaseSemaphore(needRequest, 1, 0);
       DoProcessRequest(req, stop, number);
-      // Perhaps user canceled request so check IsStopped flag before hard WaitForSingleObject operation
-      if (stop.IsStopped())
-      {
-        Utils::Log(number, "ConsumerThread: stop signal");
-        break;
-      }
     }
 
     Utils::Log(number, "Consumer thread stopped");
@@ -83,11 +82,11 @@ namespace
 
 int main()
 {
-  unsigned const NumProducers = 8;
   unsigned const NumConsumers = 4;
-  Stopper stop;
+  unsigned const NumProducers = NumConsumers * 2;
+  Stopper stop = CreateEvent(0, TRUE, FALSE, 0);
   std::auto_ptr<Utils::GuardedQueue> queue = Utils::CreateQueue();
-  HANDLE needRequest = CreateSemaphore(0, NumConsumers * 2, LONG_MAX, 0);
+  HANDLE needRequest = CreateSemaphore(0, NumProducers, LONG_MAX, 0);
   HANDLE requestReady = CreateSemaphore(0, 0, LONG_MAX, 0);
   std::vector<std::thread> threads;
   for (unsigned i = 0; i < NumProducers; ++i)
@@ -97,13 +96,12 @@ int main()
     threads.push_back(std::thread(ConsumerThread, queue.get(), needRequest, requestReady, stop, i));
 
   Sleep(30 * 1000);
-  stop.Stop();
-  ReleaseSemaphore(needRequest, NumProducers, 0);
-  ReleaseSemaphore(requestReady, NumConsumers, 0);
+  SetEvent(stop);
   for (std::vector<std::thread>::iterator i = threads.begin(); i != threads.end(); ++i)
     i->join();
 
   std::cout << "Threads stopped\n";
+  CloseHandle(stop);
   CloseHandle(needRequest);
   CloseHandle(requestReady);
   return 0;

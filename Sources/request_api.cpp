@@ -8,48 +8,25 @@
 
 namespace
 {
-  DWORD const StepTime = 100;
-  unsigned const MaxSteps = 50;
-
-  void Step()
+  DWORD GetRandomTimeout()
   {
-    ::Sleep(StepTime);
+    return 1000 * Utils::Random(5);
   }
-}
-
-void Stopper::Stop()
-{
-  InterlockedIncrement(Signal.get());
 }
 
 Request* GetRequest(Stopper stopSignal)
-{
-  unsigned count = Utils::Random(MaxSteps);
-  for (unsigned i = 0; i < count; ++i)
-  {
-    Step();
-    if (stopSignal.IsStopped())
-    {
-      std::cout << "GetRequest stopped\n";
-      return 0;
-    }
-  }
+{  
+  if (WaitForSingleObject(stopSignal, GetRandomTimeout()) != WAIT_OBJECT_0)
+    return new Request;
 
-  return new Request;
+  std::cout << "GetRequest stopped\n";
+  return 0; 
 }
 
 void ProcessRequest(Request* request, Stopper stopSignal)
 {
-  unsigned count = Utils::Random(MaxSteps);
-  for (unsigned i = 0; i < count; ++i)
-  {
-    Step();
-    if (stopSignal.IsStopped())
-    {
-      std::cout << "ProcessRequest stopped\n";
-      return;
-    }
-  }
+  if (WaitForSingleObject(stopSignal, GetRandomTimeout()) == WAIT_OBJECT_0)
+    std::cout << "ProcessRequest stopped\n";
 }
 
 void DeleteRequest(Request* request)
