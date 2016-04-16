@@ -20,7 +20,7 @@ namespace Utils
   {
   public:
     MeasureTime();
-    void Reset(unsigned numThread, unsigned alarmTimeout);
+    void Reset(unsigned alarmTimeout, std::string const& threadName);
 
   private:
     // Assumed Microsoft compiler is used so sizeof(Start) == sizeof(DWORD)
@@ -28,6 +28,6 @@ namespace Utils
   };
 
   std::auto_ptr<GuardedQueue> CreateQueue();
-  void Log(unsigned threadNum, std::string const& str);
+  void Log(std::string const& message, std::string const& threadName);
   unsigned Random(unsigned max);
 }

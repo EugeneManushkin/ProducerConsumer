@@ -19,14 +19,13 @@ Request* GetRequest(Stopper stopSignal)
   if (WaitForSingleObject(stopSignal, GetRandomTimeout()) != WAIT_OBJECT_0)
     return new Request;
 
-  std::cout << "GetRequest stopped\n";
   return 0; 
 }
 
 void ProcessRequest(Request* request, Stopper stopSignal)
 {
   if (WaitForSingleObject(stopSignal, GetRandomTimeout()) == WAIT_OBJECT_0)
-    std::cout << "ProcessRequest stopped\n";
+    Utils::Log("ProcessRequest stopped", "---------");
 }
 
 void DeleteRequest(Request* request)

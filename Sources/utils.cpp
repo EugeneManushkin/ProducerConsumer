@@ -5,6 +5,7 @@
 
 #include <deque>
 #include <iostream>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string>
 #include <time.h>
@@ -99,7 +100,7 @@ namespace Utils
   {
   }
 
-  void MeasureTime::Reset(unsigned numThread, unsigned alarmTimeout)
+  void MeasureTime::Reset(unsigned alarmTimeout, std::string const& threadName)
   {
     DWORD prev = Start;
     Start = GetTickCount();
@@ -108,7 +109,7 @@ namespace Utils
 
     std::string str(std::to_string(Start - prev));
     str = std::string("Delay = ") + str;
-    Log(numThread, str);
+    Log(str, threadName);
   }
 
   std::auto_ptr<GuardedQueue> CreateQueue()
@@ -116,10 +117,11 @@ namespace Utils
     return std::auto_ptr<GuardedQueue>(new GuardedQueueImpl);
   }
 
-  void Log(unsigned threadNum, std::string const& str)
+  void Log(std::string const& message, std::string const& threadName)
   {
-    std::string s(std::to_string(threadNum));
-    s += std::string(": ") + str + std::string("\n");
+    char buf[256];
+    sprintf_s(buf, "%05u ", GetTickCount() % (60 * 1000));
+    std::string s(std::string(buf) + threadName + std::string(": ") + message + std::string("\n"));
     std::cout << s.c_str();
   }
 

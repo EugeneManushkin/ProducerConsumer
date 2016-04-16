@@ -10,7 +10,7 @@
 
 namespace
 {
-  bool DoWait(HANDLE object, Stopper stop)
+  bool DoWait(HANDLE object, Stopper stop, std::string const& threadName)
   {
     HANDLE objects[] = {object, stop};
     DWORD count = 2;
@@ -18,27 +18,27 @@ namespace
     if (result == WAIT_OBJECT_0)
       return false;
       
-    // TODO: improve logging
     if (result < WAIT_OBJECT_0 || result >= WAIT_OBJECT_0 + count)
-      std::cout << "Error occured\n";
+      Utils::Log("Error occured", threadName);
     else
-      std::cout << "Stop signaled\n";
+      Utils::Log("Stop signaled", threadName);
 
     return true;
   }
 
   void ProducerThread(Utils::GuardedQueue* queue, HANDLE needRequest, HANDLE requestReady, Stopper stop, unsigned number)
   {
-    Utils::Log(number, "Producer thread started");
+    std::string const threadName = std::string("Producer") + std::to_string(number);
+    Utils::Log("thread started", threadName);
     while (true)
     {
-      if (DoWait(needRequest, stop))
+      if (DoWait(needRequest, stop, threadName))
         break;
 
       Request* req = GetRequest(stop);
       if (!req)
       {
-        Utils::Log(number, "ProducerThread: user brakes GetRequest");
+        Utils::Log("user brakes GetRequest", threadName);
         break;
       }
 
@@ -46,37 +46,38 @@ namespace
       ReleaseSemaphore(requestReady, 1, 0);
     }
 
-    Utils::Log(number, "Producer thread stopped");
+    Utils::Log("thread stopped", threadName);
   }
 
-  void DoProcessRequest(Request* req, Stopper stop, unsigned number)
+  void DoProcessRequest(Request* req, Stopper stop, std::string const& threadName)
   {
-    Utils::Log(number, "Start process request");
+    Utils::Log("begin process request", threadName);
     ProcessRequest(req, stop);
-    Utils::Log(number, "Stop process request");
+    Utils::Log("end process request", threadName);
     DeleteRequest(req);
   }
 
   void ConsumerThread(Utils::GuardedQueue* queue, HANDLE needRequest, HANDLE requestReady, Stopper stop, unsigned number)
   {
-    Utils::Log(number, "Consumer thread started");
+    std::string const threadName = std::string("Consumer") + std::to_string(number);
+    Utils::Log("thread started", threadName);
     while (true)
     {
       Utils::MeasureTime measure;
-      if (DoWait(requestReady, stop))
+      if (DoWait(requestReady, stop, threadName))
         break;
 
       // Print delay if > 20 ms
-      measure.Reset(number, 20);
+      measure.Reset(20, threadName);
       Request* req = 0;
       if (!queue->Release(req))
         break;
 
       ReleaseSemaphore(needRequest, 1, 0);
-      DoProcessRequest(req, stop, number);
+      DoProcessRequest(req, stop, threadName);
     }
 
-    Utils::Log(number, "Consumer thread stopped");
+    Utils::Log("thread stopped", threadName);
   }
 }
 
