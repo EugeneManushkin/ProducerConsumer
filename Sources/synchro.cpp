@@ -1,5 +1,6 @@
 #include "synchro.h"
 
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include <limits>
@@ -115,19 +116,26 @@ namespace
   private:
     HandleHolder Object;
   };
-
 }
+
+#if defined CreateMutex
+#undef CreateMutex
+#endif
+
+#if defined CreateSemaphore
+#undef CreateSemaphore
+#endif
 
 namespace Utils
 {
-  std::shared_ptr<Mutex> CreateMutex()
+  std::unique_ptr<Mutex> CreateMutex()
   {
-    return std::shared_ptr<Mutex>(new MutexImpl);
+    return std::unique_ptr<Mutex>(new MutexImpl);
   }
 
-  std::shared_ptr<Semaphore> CreateSemaphore(std::shared_ptr<Stopper> const& stopSignal)
+  std::unique_ptr<Semaphore> CreateSemaphore(std::shared_ptr<Stopper> const& stopSignal)
   {
-    return std::shared_ptr<Semaphore>(new SemaphoreImpl(stopSignal));
+    return std::unique_ptr<Semaphore>(new SemaphoreImpl(stopSignal));
   }
 
   std::shared_ptr<Stopper> CreateStopper()

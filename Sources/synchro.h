@@ -7,6 +7,10 @@ namespace Utils
   class Mutex
   {
   public:
+    virtual ~Mutex()
+    {
+    }
+
     virtual void lock() = 0;
     virtual void unlock() = 0;
   };
@@ -14,6 +18,10 @@ namespace Utils
   class Semaphore
   {
   public:
+    virtual ~Semaphore()
+    {
+    }
+
     virtual void Signal() = 0;
     virtual void Wait() = 0;
   };
@@ -21,11 +29,15 @@ namespace Utils
   class Stopper
   {
   public:
+    virtual ~Stopper()
+    {
+    }
+
     virtual void Stop() = 0;
     virtual void* GetHandle() = 0;
   };
 
-  std::shared_ptr<Mutex> CreateMutex();
-  std::shared_ptr<Semaphore> CreateSemaphore(std::shared_ptr<Stopper> const& stopSignal);
+  std::unique_ptr<Mutex> CreateMutex();
+  std::unique_ptr<Semaphore> CreateSemaphore(std::shared_ptr<Stopper> const& stopSignal);
   std::shared_ptr<Stopper> CreateStopper();
 }
