@@ -15,12 +15,14 @@
     <ClCompile Include="..\Sources\queue.cpp" />
     <ClCompile Include="..\Sources\request_api.cpp" />
     <ClCompile Include="..\Sources\synchro.cpp" />
+    <ClCompile Include="..\Sources\thread_manager.cpp" />
     <ClCompile Include="..\Sources\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Sources\queue.h" />
     <ClInclude Include="..\Sources\request_api.h" />
     <ClInclude Include="..\Sources\synchro.h" />
+    <ClInclude Include="..\Sources\thread_manager.h" />
     <ClInclude Include="..\Sources\utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
