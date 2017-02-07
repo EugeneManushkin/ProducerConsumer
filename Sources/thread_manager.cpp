@@ -45,7 +45,7 @@ namespace
       while (true)
       {
         NeedRequest->Wait();
-        std::unique_ptr<Request> req(GetRequest(StopSignal->GetHandle()));
+        std::shared_ptr<Request> req(GetRequest(StopSignal->GetHandle()), ::DeleteRequest);
         if (req)
           Queue->Push(std::move(req));
       }
@@ -74,7 +74,7 @@ namespace
       {
         NeedRequest->Signal();
         Utils::MeasureTime measure;
-        std::unique_ptr<Request> request = Queue->Pop();
+        auto const& request = Queue->Pop();
         // Print delay if > 20 ms
         measure.Reset(20, Name());
         ProcessRequest(request.get());

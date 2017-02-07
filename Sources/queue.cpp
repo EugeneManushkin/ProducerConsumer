@@ -8,7 +8,7 @@
 namespace
 {
   typedef std::lock_guard<Utils::Mutex> MutexLock;
-  typedef std::unique_ptr<Request> RequestPtr;
+  typedef std::shared_ptr<Request> RequestPtr;
 
   class GuardedQueue : public Utils::Queue
   {
@@ -25,15 +25,15 @@ namespace
       if (Requests.empty())
         return result;
 
-      result = std::move(Requests.back());
+      result = Requests.back();
       Requests.pop_back();
       return result;
     }
 
-    virtual void Push(std::unique_ptr<Request> req)
+    virtual void Push(RequestPtr req)
     {
       MutexLock lock(*Guard);
-      Requests.push_front(std::move(req));
+      Requests.push_front(req);
     }
 
   private:
