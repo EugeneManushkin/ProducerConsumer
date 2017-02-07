@@ -1,130 +1,67 @@
-#include "request_api.h"
+#include "synchro.h"
 #include "utils.h"
 
-#include <windows.h>
-
-#include <deque>
 #include <iostream>
 #include <random>
-#include <stdarg.h>
-#include <string>
-#include <time.h>
+#include <thread>
+#include <sstream>
+#include <iomanip>
+#include <mutex>
 
 namespace
 {
-  struct Locker
-  {
-    Locker(CRITICAL_SECTION* mutex)
-      : Mutex(mutex)
-    {
-      EnterCriticalSection(Mutex);
-    }
-
-    ~Locker()
-    {
-      LeaveCriticalSection(Mutex);
-    }
-
-  private:
-    CRITICAL_SECTION* Mutex;
-  };
-
-  class GuardedQueueImpl : public Utils::GuardedQueue
-  {
-  public:
-    GuardedQueueImpl()
-    {
-      InitializeCriticalSection(&Mutex);
-    }
-
-    ~GuardedQueueImpl()
-    {
-      DeleteCriticalSection(&Mutex);
-      for (std::deque<Request*>::const_iterator i = Requests.begin(); i != Requests.end(); ++i)
-        DeleteRequest(*i);
-    }
-
-    bool Release(Request*& result)
-    {
-      Locker guard(&Mutex);
-      if (Requests.empty())
-        return 0;
-
-      result = Requests.back();
-      Requests.pop_back();
-      return true;
-    }
-
-    void Add(Request* req)
-    {
-      Locker guard(&Mutex);
-      Requests.push_front(req);
-    }
-
-  private:
-    std::deque<Request*> Requests;
-    CRITICAL_SECTION Mutex;
-  };
-
   class Randomizer
   {
   public:
     unsigned Random(unsigned max)
     {
-      Locker guard(&Mutex);
+      std::lock_guard<Utils::Mutex> guard(*Mutex);
       std::uniform_int_distribution<unsigned> d(1, max);
       return d(Engine);
     }
  
     Randomizer()
       : Engine(std::random_device()())
+      , Mutex(Utils::CreateMutex())
     {
-      InitializeCriticalSection(&Mutex);
-    }
-
-    ~Randomizer()
-    {
-      DeleteCriticalSection(&Mutex);
     }
 
   private:
     std::mt19937 Engine;
-    CRITICAL_SECTION Mutex;
+    std::unique_ptr<Utils::Mutex> Mutex;
   };
 
   static Randomizer Rand;
+
+  typedef std::chrono::time_point<std::chrono::system_clock> TimePoint;
 }
 
 namespace Utils
 {
   MeasureTime::MeasureTime()
-    : Start(GetTickCount())
+    : Start(std::chrono::system_clock::now())
   {
   }
 
   void MeasureTime::Reset(unsigned alarmTimeout, std::string const& threadName)
   {
-    DWORD prev = Start;
-    Start = GetTickCount();
-    if (Start - prev <= alarmTimeout)
+    typedef std::chrono::duration<double> DurationInSeconds;
+    TimePoint prev = Start;
+    Start = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(Start - prev);
+    if (duration.count() <= alarmTimeout)
       return;
 
-    std::string str(std::to_string(Start - prev));
+    std::string str(std::to_string(duration.count()));
     str = std::string("Delay = ") + str;
     Log(str, threadName);
   }
 
-  std::auto_ptr<GuardedQueue> CreateQueue()
-  {
-    return std::auto_ptr<GuardedQueue>(new GuardedQueueImpl);
-  }
-
   void Log(std::string const& message, std::string const& threadName)
   {
-    char buf[256];
-    sprintf_s(buf, "%05u ", GetTickCount() % (60 * 1000));
-    std::string s(std::string(buf) + threadName + std::string(": ") + message + std::string("\n"));
-    std::cout << s.c_str();
+    std::stringstream stream;   
+    stream << std::setw(5) << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % (60 * 1000) << " T:" << std::setw(10) << std::this_thread::get_id() << " " << threadName << ": " << message << std::endl;
+    std::cout << stream.str();
   }
 
   unsigned Random(unsigned max)
