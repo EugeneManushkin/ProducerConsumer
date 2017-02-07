@@ -3,8 +3,8 @@
 
 #include <windows.h>
 
-#include <iostream>
 #include <memory>
+#include <sstream>
 
 namespace
 {
@@ -12,23 +12,35 @@ namespace
   {
     return 1000 * Utils::Random(5);
   }
+
+  void LogPointerOperation(char const* operation, void* ptr)
+  {
+    std::stringstream stream;
+    stream << operation << ": " << ptr;
+    Utils::Log(stream.str(), "---------");
+  }
 }
 
 Request* GetRequest(Stopper stopSignal)
 {  
+  Request* ptr = 0;
   if (WaitForSingleObject(stopSignal, GetRandomTimeout()) != WAIT_OBJECT_0)
-    return new Request;
+    ptr = new Request;
 
-  return 0; 
+  LogPointerOperation("allocated", ptr);
+  return ptr; 
 }
 
 void ProcessRequest(Request* request, Stopper stopSignal)
 {
   if (WaitForSingleObject(stopSignal, GetRandomTimeout()) == WAIT_OBJECT_0)
-    Utils::Log("ProcessRequest stopped", "---------");
+    LogPointerOperation("processing interrupted", request);
+  else
+    LogPointerOperation("processed", request);
 }
 
 void DeleteRequest(Request* request)
 {
+  LogPointerOperation("freed", request);
   delete request;
 }
