@@ -57,32 +57,61 @@ namespace
     std::shared_ptr<Utils::Stopper> StopSignal;
   };
 
+  class ConsumerThread : public NamedThread
+  {
+  public:
+    ConsumerThread(std::string const& name, std::shared_ptr<Utils::Queue> const& queue, std::shared_ptr<Utils::Semaphore> const& needRequest, std::shared_ptr<Utils::Stopper> const& stopSignal)
+      : NamedThread(name)
+      , Queue(queue)
+      , NeedRequest(needRequest)
+      , StopSignal(stopSignal)
+    {
+    }
+
+    virtual void ThreadFunc()
+    {
+      while (true)
+      {
+        NeedRequest->Signal();
+        Utils::MeasureTime measure;
+        std::unique_ptr<Request> request = Queue->Pop();
+        // Print delay if > 20 ms
+        measure.Reset(20, Name());
+        ProcessRequest(request.get());
+      }
+    }
+
+  private:
+    void ProcessRequest(Request* req)
+    {
+      Utils::Log("begin process request", Name());
+      ::ProcessRequest(req, StopSignal->GetHandle());
+      Utils::Log("end process request", Name());
+    }
+
+    std::shared_ptr<Utils::Queue> Queue;
+    std::shared_ptr<Utils::Semaphore> NeedRequest;
+    std::shared_ptr<Utils::Stopper> StopSignal;
+  };
+
   class ThreadManagerImpl : public Utils::ThreadManager
   {
   public:
-    ThreadManagerImpl()
+    ThreadManagerImpl(std::size_t producerCount, std::size_t consumerCount)
       : StopSignal(Utils::CreateStopper())
       , Queue(Utils::CreateWaitableQueue(StopSignal))
       , NeedRequest(Utils::CreateSemaphore(StopSignal))
-      , NumProducers(0)
     {
+      for (std::size_t i = 0; i < producerCount; ++i)
+        AddProducer(i);
+
+      for (std::size_t i = 0; i < consumerCount; ++i)
+        AddConsumer(i);
     }
 
     ~ThreadManagerImpl()
     {
       assert(Threads.empty());
-    }
-
-    virtual void AddProducer()
-    {
-      std::string name(std::string("Producer") + std::to_string(++NumProducers));
-      std::unique_ptr<Utils::Thread> thread(new ProducerThread(name, Queue, NeedRequest, StopSignal));
-      Push(std::move(thread));
-    }
-  
-    virtual void AddConsumer()
-    {
-
     }
 
     virtual void Stop()
@@ -95,6 +124,20 @@ namespace
     }
   
   private:
+    void AddProducer(std::size_t i)
+    {
+      std::string name(std::string("Producer") + std::to_string(i));
+      std::unique_ptr<Utils::Thread> thread(new ProducerThread(name, Queue, NeedRequest, StopSignal));
+      Push(std::move(thread));
+    }
+
+    virtual void AddConsumer(std::size_t i)
+    {
+      std::string name(std::string("Consumer") + std::to_string(i));
+      std::unique_ptr<Utils::Thread> thread(new ConsumerThread(name, Queue, NeedRequest, StopSignal));
+      Push(std::move(thread));
+    }
+
     void Push(std::unique_ptr<Utils::Thread> thread)
     {
       Threads.push_back(std::thread(std::bind(&Utils::Thread::Execute, std::move(thread))));
@@ -104,7 +147,6 @@ namespace
     std::shared_ptr<Utils::Queue> Queue;
     std::shared_ptr<Utils::Semaphore> NeedRequest;
     std::vector<std::thread> Threads;
-    unsigned NumProducers;
   };
 }
 
@@ -119,14 +161,14 @@ namespace Utils
     }
     catch (std::exception const& e)
     {
-      std::cerr << Name() << ": " << e.what();
+      Utils::Log(e.what(), Name());
     }
     
     Utils::Log("Thread stopped", Name());
   }
 
-  std::unique_ptr<ThreadManager> CreateThreadManager()
+  std::unique_ptr<ThreadManager> CreateThreadManager(std::size_t producerCount, std::size_t consumerCount)
   {
-    return std::unique_ptr<ThreadManager>(new ThreadManagerImpl());
+    return std::unique_ptr<ThreadManager>(new ThreadManagerImpl(producerCount, consumerCount));
   }
 }

@@ -26,10 +26,8 @@ namespace Utils
     {
     }
 
-    virtual void AddProducer() = 0;
-    virtual void AddConsumer() = 0;
     virtual void Stop() = 0;
   };
 
-  std::unique_ptr<ThreadManager> CreateThreadManager();
+  std::unique_ptr<ThreadManager> CreateThreadManager(std::size_t producerCount, std::size_t consumerCount);
 }
