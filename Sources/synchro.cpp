@@ -108,6 +108,11 @@ namespace
         throw GetSystemError("Failed to set event");
     }
 
+    virtual bool Wait(unsigned timeout)
+    {
+      return ::WaitForSingleObject(Object.get(), timeout) == WAIT_OBJECT_0;
+    }
+
     virtual void* GetHandle()
     {
       return Object.get();

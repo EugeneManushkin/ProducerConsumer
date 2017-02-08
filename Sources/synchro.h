@@ -34,6 +34,7 @@ namespace Utils
     }
 
     virtual void Stop() = 0;
+    virtual bool Wait(unsigned timeout) = 0;
     virtual void* GetHandle() = 0;
   };
 

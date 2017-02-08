@@ -98,8 +98,8 @@ namespace
   class ThreadManagerImpl : public Utils::ThreadManager
   {
   public:
-    ThreadManagerImpl(std::size_t producerCount, std::size_t consumerCount)
-      : StopSignal(Utils::CreateStopper())
+    ThreadManagerImpl(std::size_t producerCount, std::size_t consumerCount, std::shared_ptr<Utils::Stopper> const& stopSignal)
+      : StopSignal(stopSignal)
       , Queue(Utils::CreateWaitableQueue(StopSignal))
       , NeedRequest(Utils::CreateSemaphore(StopSignal))
     {
@@ -112,18 +112,15 @@ namespace
 
     ~ThreadManagerImpl()
     {
-      assert(Threads.empty());
+      for (auto &i : this->Threads)
+        i.join();
     }
 
     virtual void Stop()
     {
       StopSignal->Stop();
-      for (auto &i : this->Threads)
-        i.join();
-
-      Threads.clear();
     }
-  
+
   private:
     void AddProducer(std::size_t i)
     {
@@ -164,12 +161,12 @@ namespace Utils
     {
       Utils::Log(e.what(), Name());
     }
-    
+
     Utils::Log("Thread stopped", Name());
   }
 
-  std::unique_ptr<ThreadManager> CreateThreadManager(std::size_t producerCount, std::size_t consumerCount)
+  std::unique_ptr<ThreadManager> CreateThreadManager(std::size_t producerCount, std::size_t consumerCount, std::shared_ptr<Utils::Stopper> const& stopSignal)
   {
-    return std::unique_ptr<ThreadManager>(new ThreadManagerImpl(producerCount, consumerCount));
+    return std::unique_ptr<ThreadManager>(new ThreadManagerImpl(producerCount, consumerCount, stopSignal));
   }
 }

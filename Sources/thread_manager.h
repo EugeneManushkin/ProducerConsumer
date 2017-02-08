@@ -29,5 +29,7 @@ namespace Utils
     virtual void Stop() = 0;
   };
 
-  std::unique_ptr<ThreadManager> CreateThreadManager(std::size_t producerCount, std::size_t consumerCount);
+  class Stopper;
+
+  std::unique_ptr<ThreadManager> CreateThreadManager(std::size_t producerCount, std::size_t consumerCount, std::shared_ptr<Utils::Stopper> const& stopSignal);
 }
