@@ -70,13 +70,14 @@ namespace
 
     virtual void ThreadFunc()
     {
+      NeedRequest->Signal();
       while (true)
       {
-        NeedRequest->Signal();
         Utils::MeasureTime measure;
         auto const& request = Queue->Pop();
         // Print delay if > 20 ms
         measure.Reset(20, Name());
+        NeedRequest->Signal();
         ProcessRequest(request.get());
       }
     }
