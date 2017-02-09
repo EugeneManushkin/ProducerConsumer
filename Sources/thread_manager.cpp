@@ -112,13 +112,17 @@ namespace
 
     ~ThreadManagerImpl()
     {
-      for (auto &i : this->Threads)
-        i.join();
+      assert(Threads.empty());
     }
 
     virtual void Stop()
     {
       StopSignal->Stop();
+      for (auto &i : Threads)
+        i.join();
+
+      Queue.reset();
+      Threads.clear();
     }
 
   private:

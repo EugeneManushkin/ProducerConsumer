@@ -60,7 +60,7 @@ namespace Utils
   void Log(std::string const& message, std::string const& threadName)
   {
     std::stringstream stream;   
-    stream << std::setw(5) << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % (60 * 1000) << " T:" << std::setw(10) << std::this_thread::get_id() << " " << threadName << ": " << message << std::endl;
+    stream << std::setw(5) << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() % (60 * 1000) << " T:" << std::setw(10) << std::this_thread::get_id() << " " << std::setw(10) << threadName << ": " << message << std::endl;
     std::cout << stream.str();
   }
 

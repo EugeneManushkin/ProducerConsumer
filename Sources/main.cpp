@@ -1,5 +1,6 @@
 #include "synchro.h"
 #include "thread_manager.h"
+#include "utils.h"
 
 #include <windows.h>
 
@@ -20,12 +21,13 @@ namespace
 
 int main()
 {
+  Utils::Log("Application started", "main");
   unsigned const NumConsumers = 4;
   unsigned const NumProducers = NumConsumers;
   ::SetConsoleCtrlHandler(ConsoleEventHandler, TRUE);
   std::unique_ptr<Utils::ThreadManager> manager = Utils::CreateThreadManager(NumProducers, NumConsumers, GetStopSignal());
-  if (!GetStopSignal()->Wait(30 * 1000))
-    manager->Stop();
-
+  GetStopSignal()->Wait(30 * 1000);
+  manager->Stop();
+  Utils::Log("Application stopped", "main");
   return 0;
 }
